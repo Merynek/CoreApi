@@ -19,6 +19,7 @@ namespace CoreApi.Controllers
     [ApiController]
     public class ValuesController : ControllerBase
     {
+
         private readonly IConfiguration _configuration;
 
         public ValuesController(IConfiguration configuration)
@@ -48,7 +49,7 @@ namespace CoreApi.Controllers
         [Route("free")]
         public ActionResult<string> GetId()
         {
-            string ss = _configuration.GetConnectionString("DefaultConnection");
+            string ss = _configuration.GetConnectionString("LocalConnection");
             var connection = new SqlConnection(ss);
             var compiler = new SqlServerCompiler();
 

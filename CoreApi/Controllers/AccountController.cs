@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using CoreApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoreApi.Controllers
@@ -20,8 +21,8 @@ namespace CoreApi.Controllers
             {
                 var usersClaims = new[]
                 {
+                    new Claim("ID", "1"),
                     new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.NameIdentifier, "1"),
                     new Claim(ClaimTypes.Role, "admin")
 
                 };
@@ -44,7 +45,7 @@ namespace CoreApi.Controllers
                 var usersClaims = new[]
                 {
                     new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.NameIdentifier, "1"),
+                    new Claim("ID", "2"),
                 };
 
                 var jwtToken = _tokenService.GenerateAccessToken(usersClaims);
@@ -64,5 +65,28 @@ namespace CoreApi.Controllers
                 return BadRequest();
             }
         }
+
+        /*[HttpPost]
+        [AllowAnonymous]
+        public async IActionResult RefreshToken(string authenticationToken, string refreshToken)
+        {
+            var principal = _tokenService.GetPrincipalFromExpiredToken(authenticationToken);
+            var username = principal.Identity.Name; //this is mapped to the Name claim by default
+
+            var user = _context.UserRefreshTokens.SingleOrDefault(u => u.Username == username);
+            if (user == null || user.RefreshToken != refreshToken) return BadRequest();
+
+            var newJwtToken = _tokenService.GenerateAccessToken(principal.Claims);
+            var newRefreshToken = _tokenService.GenerateRefreshToken();
+
+            user.RefreshToken = newRefreshToken;
+            await _context.SaveChangesAsync();
+
+            return new ObjectResult(new
+            {
+                authenticationToken = newJwtToken,
+                refreshToken = newRefreshToken
+            });
+        }*/
     }
 }
