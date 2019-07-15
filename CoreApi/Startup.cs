@@ -9,91 +9,105 @@ using Microsoft.IdentityModel.Tokens;
 using CoreApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using CoreApi.Hubs;
+using System.Security.Claims;
 
 namespace CoreApi
 {
     public class Startup
     {
-        public IConfiguration Configuration { get; set; }
+        public IConfiguration Configuration { get; }
 
-        public Startup(IHostingEnvironment env)
+        public Startup(IConfiguration configuration)
         {
-            Configuration = new ConfigurationBuilder()
-                                .SetBasePath(env.ContentRootPath)
-                                .AddJsonFile("appsettings.json")
-                                .Build();
+            Configuration = configuration;
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors();
+            services.AddMvc().AddNewtonsoftJson().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
             services.AddSignalR();
             services.AddSingleton<IConfiguration>(provider => Configuration);
             services.AddTransient<ITokenService, TokenService>();
-            services.AddMvc().AddNewtonsoftJson().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
             services.AddAuthentication(options =>
             {
                 options.DefaultScheme = "bearer";
-            }).AddJwtBearer("bearer", options =>
+            }).AddJwtBearer("bearer", options => 
             {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateAudience = false,
-                    ValidateIssuer = false,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["serverSigningPassword"])),
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero //the default for this setting is 5 minutes,
-                };
-
-                options.Events = new JwtBearerEvents
-                {
-                    OnAuthenticationFailed = context =>
-                    {
-                        if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
-                        {
-                            context.Response.Headers.Add("Token-Expired", "true");
-                        }
-                        return Task.CompletedTask;
-                    },
-                    OnTokenValidated = context =>
-                    {
-                        return Task.CompletedTask;
-                    },
-                    OnMessageReceived = context =>
-                    {
-                        var accessToken = context.Request.Query["access_token"];
-
-                        if (!string.IsNullOrEmpty(accessToken))
-                        {
-                            context.Token = context.Request.Query["access_token"];
-                        }
-                        return Task.CompletedTask;
-                    }
-
-                };
+                options.TokenValidationParameters = GetTokenValidationParameters();
+                options.Events = GetJwtBearerEvents();
             });
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IServiceProvider serviceProvider)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
+            app.UseCors(x => x
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader());
 
             app.UseAuthentication();
 
-            app.UseStaticFiles();
-
-            app.UseMvcWithDefaultRoute();
+            app.UseMvc();
 
             app.UseSignalR(routes =>
             {
                 routes.MapHub<Chat>("/chat");
             });
+        }
+
+        private TokenValidationParameters GetTokenValidationParameters()
+        {
+            return new TokenValidationParameters
+            {
+
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["serverSigningPassword"])),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero //the default for this setting is 5 minutes,
+            };
+        }
+
+        private JwtBearerEvents GetJwtBearerEvents()
+        {
+            return new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+                    {
+                        context.Response.Headers.Add("Token-Expired", "true");
+                    }
+
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    ClaimsIdentity identity = context.Principal.Identity as ClaimsIdentity;
+                    var ID = identity.FindFirst("ID").Value;
+
+                    if (ID == "3")
+                    {
+                        context.Fail("Unauthorized");
+                    }
+
+                    return Task.CompletedTask;
+                },
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+
+                    if (!string.IsNullOrEmpty(accessToken))
+                    {
+                        context.Token = context.Request.Query["access_token"];
+                    }
+
+                    return Task.CompletedTask;
+                }
+            };
         }
     }
 }

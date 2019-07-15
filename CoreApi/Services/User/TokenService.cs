@@ -17,7 +17,7 @@ namespace CoreApi.Services
         {
             _configuration = configuration;
         }
-        public string GenerateAccessToken(IEnumerable<Claim> claims)
+        public JwtSecurityToken GenerateAccessToken(IEnumerable<Claim> claims)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["serverSigningPassword"]));
 
@@ -29,7 +29,7 @@ namespace CoreApi.Services
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
             );
 
-            return new JwtSecurityTokenHandler().WriteToken(jwtToken);
+            return jwtToken;
         }
 
         public string GenerateRefreshToken()
