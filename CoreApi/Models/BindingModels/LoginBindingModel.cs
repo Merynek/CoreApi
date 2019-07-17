@@ -23,4 +23,11 @@ namespace CoreApi.Models.BindingModels
         [Display(Name = "refreshToken")]
         public string refreshToken { get; set; }
     }
+
+    public class CheckTokenBindingModel
+    {
+        [Required]
+        [Display(Name = "token")]
+        public string token { get; set; }
+    }
 }

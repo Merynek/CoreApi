@@ -7,17 +7,13 @@ using System.Security.Claims;
 
 namespace CoreApi.Services
 {
-    public class UserService
+    public class UserService : BaseService
     {
         private readonly ITokenService _tokenService;
-        private readonly QueryFactory _db;
-        private ResponseModel response;
 
-        public UserService(QueryFactory db, ITokenService tokenService)
+        public UserService(QueryFactory db, ITokenService tokenService) : base(db)
         {
-            this._db = db;
             this._tokenService = tokenService;
-            this.response = new ResponseModel();
         }
 
         public ResponseModel Login(LoginBindingModel model)
@@ -29,7 +25,8 @@ namespace CoreApi.Services
                 var usersClaims = new[]
                 {
                     new Claim("ID", user.ID.ToString()),
-                    new Claim(ClaimTypes.Name, user.username)
+                    new Claim(ClaimTypes.Name, user.username),
+                    new Claim(ClaimTypes.Role, user.role)
                 };
 
                 var generatedToken = _tokenService.GenerateAccessToken(usersClaims);
@@ -41,7 +38,7 @@ namespace CoreApi.Services
                 {
                     token = jwtToken,
                     refreshToken = refreshToken,
-                    expire = (long)(generatedToken.ValidTo - new DateTime(1970, 1, 1)).TotalMilliseconds
+                    expire = getTokenExpireTime(generatedToken)
                 });
             }
             else
@@ -56,7 +53,7 @@ namespace CoreApi.Services
         {
             var principal = _tokenService.GetPrincipalFromExpiredToken(model.token);
             var username = principal.Identity.Name; //this is mapped to the Name claim by default
-
+             
             User user = _db.Query("Users").Where("username", username).First<User>();
             if (user == null || user.refreshToken != model.refreshToken)
             {
@@ -64,7 +61,8 @@ namespace CoreApi.Services
                 return response;
             }
 
-            var jwtToken = new JwtSecurityTokenHandler().WriteToken(_tokenService.GenerateAccessToken(principal.Claims));
+            var generatedToken = _tokenService.GenerateAccessToken(principal.Claims);
+            var jwtToken = new JwtSecurityTokenHandler().WriteToken(generatedToken);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
             refreshTokenField(user.ID, refreshToken);
@@ -72,7 +70,27 @@ namespace CoreApi.Services
             response.SetResponseData(new
             {
                 token = jwtToken,
-                refreshToken = refreshToken
+                refreshToken = refreshToken,
+                expire = getTokenExpireTime(generatedToken)
+            });
+
+            return response;
+        }
+
+        public ResponseModel CheckToken(string token)
+        {
+            var principal = _tokenService.GetPrincipalFromExpiredToken(token);
+            var username = principal.Identity.Name;
+
+            User user = _db.Query("Users").Where("username", username).First<User>();
+            if (user == null)
+            {
+                response.SetError(3, "Fail check token");
+                return response;
+            }
+            response.SetResponseData(new
+            {
+                username = user.username
             });
 
             return response;
@@ -95,6 +113,11 @@ namespace CoreApi.Services
             {
                 refreshToken = refreshToken
             });
+        }
+
+        private long getTokenExpireTime(JwtSecurityToken token)
+        {
+            return (long)(token.ValidTo - new DateTime(1970, 1, 1)).TotalMilliseconds;
         }
     }
 }

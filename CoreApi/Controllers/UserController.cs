@@ -54,6 +54,24 @@ namespace CoreApi.Controllers
         }
 
         [HttpPost]
+        [Authorize]
+        [Route("checkToken")]
+        public IActionResult CheckToken([FromBody]CheckTokenBindingModel model)
+        {
+            if (!ModelState.IsValid || model == null)
+            {
+                return BadRequest(ModelState);
+            }
+            var response = _userService.CheckToken(model.token);
+
+            if (response.OK)
+            {
+                return Ok(response.ResponseData);
+            }
+            return BadRequest(response.Error);
+        }
+
+        [HttpPost]
         [AllowAnonymous]
         [Route("registration")]
         public IActionResult Registration([FromBody]RegistrationBindingModel model)

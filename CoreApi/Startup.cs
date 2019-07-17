@@ -89,10 +89,10 @@ namespace CoreApi
                     ClaimsIdentity identity = context.Principal.Identity as ClaimsIdentity;
                     var ID = identity.FindFirst("ID").Value;
 
-                    if (ID == "3")
+                    /*if (ID == "3")
                     {
                         context.Fail("Unauthorized");
-                    }
+                    }*/
 
                     return Task.CompletedTask;
                 },

@@ -30,7 +30,7 @@ namespace CoreApi.Controllers
         [Authorize]
         public ActionResult<IEnumerable<string>> GetXX()
         {
-            return new string[] { "noAdminValue", "noAdminValue2" };
+            return new string[] { "authValue", "authValue2" };
         }
 
 
