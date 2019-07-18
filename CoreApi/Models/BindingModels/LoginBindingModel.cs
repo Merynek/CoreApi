@@ -11,6 +11,10 @@ namespace CoreApi.Models.BindingModels
         [Required]
         [Display(Name = "password")]
         public string password { get; set; }
+
+        [Required]
+        [Display(Name = "permanent")]
+        public bool permanent { get; set; }
     }
 
     public class RefreshTokenBindingModel

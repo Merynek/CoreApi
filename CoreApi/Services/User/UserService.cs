@@ -29,7 +29,7 @@ namespace CoreApi.Services
                     new Claim(ClaimTypes.Role, user.role)
                 };
 
-                var generatedToken = _tokenService.GenerateAccessToken(usersClaims);
+                var generatedToken = _tokenService.GenerateAccessToken(usersClaims, model.permanent);
                 var jwtToken = new JwtSecurityTokenHandler().WriteToken(generatedToken);
                 var refreshToken = _tokenService.GenerateRefreshToken();
 
@@ -61,7 +61,7 @@ namespace CoreApi.Services
                 return response;
             }
 
-            var generatedToken = _tokenService.GenerateAccessToken(principal.Claims);
+            var generatedToken = _tokenService.GenerateAccessToken(principal.Claims, false);
             var jwtToken = new JwtSecurityTokenHandler().WriteToken(generatedToken);
             var refreshToken = _tokenService.GenerateRefreshToken();
 

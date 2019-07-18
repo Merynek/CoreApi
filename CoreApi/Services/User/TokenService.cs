@@ -17,7 +17,7 @@ namespace CoreApi.Services
         {
             _configuration = configuration;
         }
-        public JwtSecurityToken GenerateAccessToken(IEnumerable<Claim> claims)
+        public JwtSecurityToken GenerateAccessToken(IEnumerable<Claim> claims, bool permanent)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["serverSigningPassword"]));
 
@@ -25,7 +25,7 @@ namespace CoreApi.Services
                 audience: "Anyone",
                 claims: claims,
                 notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddMinutes(int.Parse(_configuration["accessTokenDurationInMinutes"])),
+                expires: permanent ? DateTime.UtcNow.AddYears(10) : DateTime.UtcNow.AddMinutes(int.Parse(_configuration["accessTokenDurationInMinutes"])),
                 signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
             );
 
